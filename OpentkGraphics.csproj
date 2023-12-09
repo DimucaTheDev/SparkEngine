@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  <PublishAOT>false</PublishAOT>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AssimpNet" Version="5.0.0-beta1" />
+    <PackageReference Include="OpenTK" Version="4.8.1" />
+    <PackageReference Include="StbImageSharp" Version="2.27.13" />
+    <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Shader\default.frag">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Shader\default.vert">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Textures\image.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="untitled.mtl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="untitled.obj">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
