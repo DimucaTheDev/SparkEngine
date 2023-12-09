@@ -4,6 +4,7 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpentkGraphics;
 using StbImageSharp;
+using System.Drawing;
 using static OpenTK.Graphics.OpenGL.GL;
 using Color4 = OpenTK.Mathematics.Color4;
 namespace RotatingCube
@@ -23,11 +24,14 @@ namespace RotatingCube
             0.7f,0,
             0,0
         };
-        private float[] vert =
+        private float[] _vert =
         {
-            -1,-1,0,
-            0,1,0,
-            1,-1,0
+            -0.5f,0.5f,0,
+            0.5f,0.5f,0,
+            -0.5f,-0.5f,0,
+            0.5f,0.5f,0,
+            0.5f,-0.5f,0,
+            -0.5f,-0.5f,0
             /*
             -0.7f,0.7f,0,
             0.7f,0.7f,0,
@@ -36,25 +40,33 @@ namespace RotatingCube
             */
         };
 
+        private List<Vector3> vert = new()
+        {
+            new(-0.5f,0.5f,-0.5f),
+            new(0.5f,0.5f,-0.5f),
+            new(0.5f,-0.5f,-0.5f),
+            new(-0.5f,-0.5f,-0.5f)
+        };
+
         private uint[] indices =
         {
-            0, 1, 2
+            1,2,3,4,5,6
         };
         private int textureID;
 
         static void Main(string[] args_) => new Program().Run();
         /// <inheritdoc />
-        public Program() : base(new(){UpdateFrequency = 3}, new() { Title = "title", WindowState = WindowState.Normal }) => CenterWindow(new(500, 500));
+        public Program() : base(new() {  }, new() { Title = "title", WindowState = WindowState.Normal }) => CenterWindow(new(700, 500));
 
         private OBJModel model;
-        private int loc,loc2,loc3;
-        private double timer=0;
+        private int loc, loc2, loc3;
+        private double timer = 0;
         /// <inheritdoc />
         protected override void OnLoad()
         {
             base.OnLoad();
 
-            //model = OBJModel.LoadObjFile("untitled.obj");
+            model = OBJModel.LoadObjFile("untitled.obj");
             //vert = OBJModel.VecToFloat(model);
             #region OpenGL
             vao = GenVertexArray();
@@ -63,7 +75,7 @@ namespace RotatingCube
 
 
             BindBuffer(BufferTarget.ArrayBuffer, vbo);
-            BufferData(BufferTarget.ArrayBuffer, vert.Length * sizeof(float), vert, BufferUsageHint.StaticDraw);
+            BufferData(BufferTarget.ArrayBuffer, vert.Count * sizeof(float), OBJModel.VecToFloat(vert), BufferUsageHint.StaticDraw);
             //BindBuffer(BufferTarget.ArrayBuffer, UNBIND);
 
             VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0, 0);
@@ -86,7 +98,7 @@ namespace RotatingCube
 
             ebo = GenBuffer();
             BindBuffer(BufferTarget.ElementArrayBuffer, ebo);
-            BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), indices, BufferUsageHint.StaticDraw);
+            BufferData(BufferTarget.ElementArrayBuffer, indices.Length * Vector3.SizeInBytes, indices, BufferUsageHint.StaticDraw);
             BindBuffer(BufferTarget.ElementArrayBuffer, UNBIND);
 
             prog = CreateProgram();
@@ -96,7 +108,8 @@ namespace RotatingCube
                 ShaderSource(shader, FromFile(name));
                 CompileShader(shader);
                 Console.WriteLine("Compiled shader " + name);
-                Console.WriteLine(GetShaderInfoLog(shader));
+                string log = "";
+                if((log = GetShaderInfoLog(shader)) != "") Console.WriteLine(log);
                 AttachShader(prog, shader);
                 DeleteShader(shader);
             }
@@ -130,6 +143,8 @@ namespace RotatingCube
             Viewport(0, 0, e.Width, e.Height);
         }
 
+        private float r = 5;// { get => (float)Random.Shared.NextDouble(); }
+        private float yrot = 0;
         /// <inheritdoc />
         protected override void OnRenderFrame(FrameEventArgs args)
         {
@@ -138,14 +153,33 @@ namespace RotatingCube
             Clear(ClearBufferMask.ColorBufferBit);
 
             UseProgram(prog);
-            VertexAttrib1(loc, (float)Random.Shared.NextDouble());
-            VertexAttrib1(loc2, (float)Random.Shared.NextDouble());
-            VertexAttrib1(loc3, (float)Random.Shared.NextDouble());
+            VertexAttrib1(loc, r);
+            VertexAttrib1(loc2, r);
+            VertexAttrib1(loc3, r);
             BindTexture(TextureTarget.Texture2D, textureID);
 
             BindVertexArray(vao);
             BindBuffer(BufferTarget.ElementArrayBuffer, ebo);
-            DrawElements(BeginMode.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+            int w = Size.X;
+            int h = Size.Y;
+            Matrix4 model = Matrix4.Identity;
+            Matrix4 view = Matrix4.Identity;
+            Matrix4 projecion = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(60), w / h, 0.1f, 100f);
+
+            model = Matrix4.CreateRotationY(yrot>=365?yrot=0:yrot+=1*(float)args.Time);
+
+            Matrix4 translation = Matrix4.CreateTranslation(0, 0, -3f);
+            model *= translation;
+
+            int modelLoc = GetUniformLocation(prog, "model");
+            int modelView = GetUniformLocation(prog, "view");
+            int modelProj = GetUniformLocation(prog, "projection");
+
+            UniformMatrix4(modelLoc, true, ref model);
+            UniformMatrix4(modelView, true, ref view);
+            UniformMatrix4(modelProj, true, ref projecion);
+
+            DrawElements(BeginMode.TriangleFan, indices.Length, DrawElementsType.UnsignedInt, 0);
 
             Context.SwapBuffers();
             base.OnRenderFrame(args);

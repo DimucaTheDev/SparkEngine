@@ -43,5 +43,16 @@ namespace OpentkGraphics
             }
             return v.ToArray();
         }
+        public static float[] VecToFloat(List<OpenTK.Mathematics.Vector3> model)
+        {
+            List<float> v = new List<float>();
+            foreach (var VARIABLE in model)
+            {
+                v.Add(VARIABLE.X);
+                v.Add(VARIABLE.Y);
+                v.Add(VARIABLE.Z);
+            }
+            return v.ToArray();
+        }
     }
 }
