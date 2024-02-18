@@ -3,18 +3,24 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34205.153
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpentkGraphics", "OpentkGraphics.csproj", "{4D198F9E-10E3-4F18-9102-F8DBE578AFA2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpentkGraphics", "OpentkGraphics.csproj", "{4D198F9E-10E3-4F18-9102-F8DBE578AFA2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
 		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{4D198F9E-10E3-4F18-9102-F8DBE578AFA2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4D198F9E-10E3-4F18-9102-F8DBE578AFA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D198F9E-10E3-4F18-9102-F8DBE578AFA2}.Debug|x64.ActiveCfg = Debug|x64
+		{4D198F9E-10E3-4F18-9102-F8DBE578AFA2}.Debug|x64.Build.0 = Debug|x64
 		{4D198F9E-10E3-4F18-9102-F8DBE578AFA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4D198F9E-10E3-4F18-9102-F8DBE578AFA2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D198F9E-10E3-4F18-9102-F8DBE578AFA2}.Release|x64.ActiveCfg = Release|x64
+		{4D198F9E-10E3-4F18-9102-F8DBE578AFA2}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,13 +1,40 @@
 ﻿//dotnet add package AssimpNet
 using Assimp;
+using OpenTK.Mathematics;
 
 namespace OpentkGraphics
 {
     public class OBJModel
     {
-        public Vector3D[] Vertices { get; set; }
+        public Vector3[] Vertices { get; set; }
         public int VertexCount { get; set; }
-
+        /*
+           ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣤⣤⣴⣶⣶⣶⣶⣶⣶⣶⣤⣤⣄⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+           ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣤⣶⣿⣿⣿⠿⠟⠛⠛⠉⠉⠉⠉⠛⠛⠛⠿⢿⣿⣿⣷⣦⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+           ⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣾⣿⡿⠟⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠿⣿⣿⣷⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀
+           ⠀⠀⠀⠀⠀⠀⣠⣾⣿⡿⠟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⢿⣿⣿⣦⡀⠀⠀⠀⠀⠀⠀
+           ⠀⠀⠀⠀⢀⣼⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⢿⣿⣿⣆⠀⠀⠀⠀⠀
+           ⠀⠀⠀⣠⣿⣿⠟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⣿⣿⣷⡀⠀⠀⠀
+           ⠀⠀⣰⣿⣿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢿⣿⣷⡄⠀⠀
+           ⠀⢰⣿⣿⠃⠀⠀⠀⠀⠀⢀⣀⣠⣤⣤⣤⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢻⣿⣷⡀⠀
+           ⢀⣿⣿⠇⠀⠀⣀⣤⣶⣿⣿⡿⠿⠿⠿⠿⠿⣿⣧⠀⠀⠀⠀⠀⠀⠀⠀⣿⣷⣦⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⣿⣿⣧⠀
+           ⣸⣿⡟⠀⠐⠿⠛⠛⢉⣡⣴⣶⣶⣶⣤⣀⠀⠀⠁⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⣿⣿⣿⣶⣤⣀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⡄
+           ⣿⣿⡇⠀⠀⠀⠀⣴⣿⠟⠉⠁⠀⠉⠙⢿⣷⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣾⡿⠛⠿⢿⣿⣿⣷⣶⣦⣤⣄⣀⡀⠀⣿⣿⡇
+           ⣿⣿⡇⠀⠀⠀⢸⣿⠁⠀⠀⣀⣀⣀⠀⠀⢹⣿⡄⠀⠀⠀⠀⠀⠀⠀⠀⢰⣿⠏⠀⠀⢀⣀⡀⠈⠉⠻⣿⡟⠛⠉⠁⠀⣿⣿⡇
+           ⣿⣿⡇⠀⠀⠀⢻⣧⠀⠀⢸⣿⣿⣿⡄⠀⢸⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⠀⠀⢰⣿⣿⣿⡆⠀⠀⣿⡇⠀⠀⠀⠀⣿⣿⡇
+           ⣿⣿⡇⢠⠀⠀⠘⣿⣆⠀⠈⠻⠿⠋⠀⢀⣾⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⣿⣇⠀⠈⠻⠿⠟⠁⠀⣼⣿⠁⠀⠀⠀⢀⣿⣿⡇
+           ⢸⣿⣿⠈⢣⠀⠀⠈⠻⣷⣶⣤⣤⣤⣶⡿⠟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢿⣷⣦⣤⣠⣤⣴⣾⠟⠁⠀⠀⠀⠀⣸⣿⣿⠁
+           ⠈⣿⣿⣧⠀⠣⡀⠀⠀⠀⠉⠉⠉⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠛⠛⠛⠉⠀⠀⠀⠀⠀⠀⢠⣿⣿⡏⠀
+           ⠀⠸⣿⣿⣆⠀⠑⢄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣤⣴⣶⣶⣶⣶⣶⣶⣦⣤⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣿⣿⡿⠁⠀
+           ⠀⠀⠹⣿⣿⣦⠀⠈⠳⢄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣿⣿⡿⠁⠀⠀
+           ⠀⠀⠀⠘⢿⣿⣷⣄⠀⠀⠑⠦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠔⢁⣼⣿⣿⡿⠁⠀⠀⠀
+           ⠀⠀⠀⠀⠈⠻⣿⣿⣧⣀⠀⠀⠈⠑⠢⢄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⡠⠔⠋⢀⣴⣿⣿⣿⠏⠀⠀⠀⠀⠀
+           ⠀⠀⠀⠀⠀⠀⠈⠻⣿⣿⣷⣤⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠀⢀⣠⣶⣿⣿⣿⠟⠁⠀⠀⠀⠀⠀⠀
+           ⠀⠀⠀⠀⠀⠀⠀⠀⠈⠛⢿⣿⣿⣷⣦⣤⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣠⣴⣾⣿⣿⣿⠿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀
+           ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⠻⢿⣿⣿⣿⣿⣷⣶⣶⣶⣶⣶⣶⣶⣿⣿⣿⣿⣿⡿⠟⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+           ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠙⠛⠻⠿⠿⠿⠿⠿⠿⠿⠛⠛⠋⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+        
+        */
         public static OBJModel LoadObjFile(string filePath)
         {
             OBJModel model = new OBJModel();
@@ -25,8 +52,8 @@ namespace OpentkGraphics
 
             if (mesh.HasVertices)
             {
-                model.Vertices = new Vector3D[model.VertexCount];
-                Array.Copy(mesh.Vertices.ToArray(), model.Vertices, model.VertexCount);
+                model.Vertices = new Vector3[model.VertexCount];
+                Array.Copy(mesh.Vertices.VecToVec().ToArray(), model.Vertices, model.VertexCount);
             }
 
             Console.WriteLine("Loaded " + filePath);
@@ -53,6 +80,16 @@ namespace OpentkGraphics
                 v.Add(VARIABLE.Z);
             }
             return v.ToArray();
+        }
+    }
+
+    static class ext
+    {
+        public static List<Vector3> VecToVec(this List<Vector3D> old)
+        {
+            List<Vector3> n = new();
+            for (int i = 0; i < old.Count; i++) n.Add(new(old[i].X, old[i].Y, old[i].Z));
+            return n;
         }
     }
 }
