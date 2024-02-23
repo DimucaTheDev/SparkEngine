@@ -20,7 +20,12 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 8.0.x
+    - name: Install Deps
+      run: dotnet add package OpenTk; dotnet add package stbimagesharp; dotnet add package system.net.http; dotnet add package System.Text.RegularExpressions; dotnet add package System.Windows.Forms.DataVisualization; dotnet add package ClickableTransparentOverlay -v 9.0.0; dotnet add package ImGui.NET; dotnet add package Veldrid.ImGui; dotnet add package Vortice.D3DCompiler; dotnet add package Vortice.Direct3D11; dotnet add package Vortice.Mathematics
+
+    
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
       run: dotnet build
+    
