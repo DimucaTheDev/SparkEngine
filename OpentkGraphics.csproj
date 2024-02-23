@@ -29,21 +29,30 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AssimpNet" Version="5.0.0-beta1" />
     <PackageReference Include="OpenTK" Version="4.8.1" />
     <PackageReference Include="StbImageSharp" Version="2.27.13" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.5" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
     <PackageReference Include="System.Windows.Forms.DataVisualization" Version="1.0.0-prerelease.20110.1" />
+    <PackageReference Include="ClickableTransparentOverlay" Version="9.0.0" />
+    <PackageReference Include="ImGui.NET" Version="1.90.1.1" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.2" />
+    <PackageReference Include="Veldrid.ImGui" Version="5.89.2-ga121087cad" />
+    <PackageReference Include="Vortice.D3DCompiler" Version="3.4.4-beta" />
+    <PackageReference Include="Vortice.Direct3D11" Version="3.4.4-beta" />
+    <PackageReference Include="Vortice.Mathematics" Version="1.7.7" />
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="model.obj">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Shader\default.frag">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Shader\default.vert">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Textures\image.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

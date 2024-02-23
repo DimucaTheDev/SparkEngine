@@ -9,112 +9,64 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using ClickableTransparentOverlay;
+using ImGuiNET;
+using SharpGen.Runtime;
 using static OpenTK.Graphics.OpenGL.GL;
 using Color4 = OpenTK.Mathematics.Color4;
 using Keys = OpenTK.Windowing.GraphicsLibraryFramework.Keys;
+using Timer = System.Timers.Timer;
 
 namespace RotatingCube
 {
+    class ConfigOverlay : Overlay
+    {
+        /// <inheritdoc />
+        public override Task Run()
+        {
+            base.Position = Point.Empty;
+            return base.Run();
+        }
+        /// <inheritdoc />
+        protected override void Render()
+        {
+            base.Position = new Point(Program.Instance.Location.X, Program.Instance.Location.Y);
+            ImGui.Begin(Program.WINDOW_TITLE);
+            if (ImGui.Button("close")) Environment.Exit(0);
+
+            ImGui.Text($"FPS: {Program.fps:#.0}");
+            ImGui.SameLine();
+            ImGui.Spacing();
+            ImGui.SameLine();
+            ImGui.Text("fps cap");
+            ImGui.SameLine();
+            ImGui.DragFloat("", ref Program.fpscap, 0.5f, 0, 1000);
+
+            ImGui.DragFloat3("obj pos", ref Program.op);
+
+            if (ImGui.Button("GC.Collect")) GC.Collect();
+        }
+    }
     class Program : GameWindow
     {
+        public static System.Numerics.Vector3 op = new();
+        public static string WINDOW_TITLE;
+        public static float fps = 0;
+        public static float time = 0;
+        private Timer s;
         public static Program Instance;
-        [DllImport("msvcrt", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, EntryPoint = "sscanf")]
-        public static extern unsafe int Sscanf(string buffer, string format, __arglist);
         public static IntPtr handle;
         public static Dictionary<string, int> BadShaders = new();
-        private float random => (float)Random.Shared.NextDouble();
         private int vao;
         private int vbo;
         private int tVbo;
         private int ebo;
+        public int fr = 0;
         public static int TextureSize = 0;
         private const int UNBIND = 0;
         private int prog;
-        //private float[] texCoords = new []{0f};
-        /*private Vector3[] vert =
-        {
-            new Vector3(-0.5f, 0.5f, 0.5f), // topleft vert
-            new Vector3(0.5f, 0.5f, 0.5f), // topright vert
-            new Vector3(0.5f, -0.5f, 0.5f), // bottomright vert
-            new Vector3(-0.5f, -0.5f, 0.5f), // bottomleft vert
-            // right face
-            new Vector3(0.5f, 0.5f, 0.5f), // topleft vert
-            new Vector3(0.5f, 0.5f, -0.5f), // topright vert
-            new Vector3(0.5f, -0.5f, -0.5f), // bottomright vert
-            new Vector3(0.5f, -0.5f, 0.5f), // bottomleft vert
-            // back face
-            new Vector3(0.5f, 0.5f, -0.5f), // topleft vert
-            new Vector3(-0.5f, 0.5f, -0.5f), // topright vert
-            new Vector3(-0.5f, -0.5f, -0.5f), // bottomright vert
-            new Vector3(0.5f, -0.5f, -0.5f), // bottomleft vert
-            // left face
-            new Vector3(-0.5f, 0.5f, -0.5f), // topleft vert
-            new Vector3(-0.5f, 0.5f, 0.5f), // topright vert
-            new Vector3(-0.5f, -0.5f, 0.5f), // bottomright vert
-            new Vector3(-0.5f, -0.5f, -0.5f), // bottomleft vert
-            // top face
-            new Vector3(-0.5f, 0.5f, -0.5f), // topleft vert
-            new Vector3(0.5f, 0.5f, -0.5f), // topright vert
-            new Vector3(0.5f, 0.5f, 0.5f), // bottomright vert
-            new Vector3(-0.5f, 0.5f, 0.5f), // bottomleft vert
-            // bottom face
-            new Vector3(-0.5f, -0.5f, 0.5f), // topleft vert
-            new Vector3(0.5f, -0.5f, 0.5f), // topright vert
-            new Vector3(0.5f, -0.5f, -0.5f), // bottomright vert
-            new Vector3(-0.5f, -0.5f, -0.5f),
-        };
-        List<Vector2> texCoords = new List<Vector2>()
-        {
-            new Vector2(0f, 1f),
-            new Vector2(1f, 1f),
-            new Vector2(1f, 0f),
-            new Vector2(0f, 0f),
-
-            new Vector2(0f, 1f),
-            new Vector2(1f, 1f),
-            new Vector2(1f, 0f),
-            new Vector2(0f, 0f),
-
-            new Vector2(0f, 1f),
-            new Vector2(1f, 1f),
-            new Vector2(1f, 0f),
-            new Vector2(0f, 0f),
-
-            new Vector2(0f, 1f),
-            new Vector2(1f, 1f),
-            new Vector2(1f, 0f),
-            new Vector2(0f, 0f),
-
-            new Vector2(0f, 1f),
-            new Vector2(1f, 1f),
-            new Vector2(1f, 0f),
-            new Vector2(0f, 0f),
-
-            new Vector2(0f, 1f),
-            new Vector2(1f, 1f),
-            new Vector2(1f, 0f),
-            new Vector2(0f, 0f),
-        };
-        private uint[] indices = new uint[] { 0, 1, 2,
-            // bottom triangle
-            2, 3, 0,
-
-            4, 5, 6,
-            6, 7, 4,
-
-            8, 9, 10,
-            10, 11, 8,
-
-            12, 13, 14,
-            14, 15, 12,
-
-            16, 17, 18,
-            18, 19, 16,
-
-            20, 21, 22,
-            22, 23, 20 };*/
         private Dictionary<string, int> textures = new();
-
+        public static float fpscap = 0;
         [STAThread]
         static void Main(string[] args_) => new Program().Run();
 
@@ -124,16 +76,26 @@ namespace RotatingCube
             //UpdateFrequency = 4
         }, new() { Title = "title", WindowState = WindowState.Normal, })
         {
+            WINDOW_TITLE = "Overlay";
+            s = new();
+            s.AutoReset = true;
+            s.Interval = 1000;
+            s.Elapsed += delegate
+            {
+                fps = fr / time;// / 1000;
+                time = fr = 0;
+
+            };
+            s.Start();
             Instance = this;
         }
-
-        private OBJModel model;
         private int loc, loc2, loc3, loc4, loc5;
         private double timer = 0;
 
         /// <inheritdoc />
         public override unsafe void Run()
         {
+            new Thread(() => new ConfigOverlay().Start()).Start();
             GLFW.HideWindow(WindowPtr);
             base.Run();
         }
@@ -142,35 +104,29 @@ namespace RotatingCube
         protected override void OnUnload()
         {
             base.OnUnload();
-            GL.DeleteVertexArray(vao);
-            GL.DeleteBuffer(vbo);
-            GL.DeleteBuffer(ebo);
+            DeleteVertexArray(vao);
+            DeleteBuffer(vbo);
+            DeleteBuffer(ebo);
             foreach (var VARIABLE in textures) DeleteTexture(VARIABLE.Value);
-            GL.DeleteProgram(prog);
+            DeleteProgram(prog);
         }
-
-        /// <inheritdoc />
-        protected override void OnFocusedChanged(FocusedChangedEventArgs e)
-        {
-
-            base.OnFocusedChanged(e);
-        }
-
         private List<uint> indices = new();
         private List<Vector3> vert = new();
         private List<int> texCoords = new();
-        private static Form2 f;
         /// <inheritdoc />
         protected override unsafe void OnLoad()
         {
             base.OnLoad();
-            f = new Form2();
             Focus();
             handle = Context.WindowPtr;
+            #region OpenGL 
+            //Упаси боже ты здесь что то поменяешь 
+            vao = GenVertexArray();
+            BindVertexArray(vao);
+            vbo = GenBuffer();
             CultureInfo ci = (CultureInfo)CultureInfo.CurrentCulture.Clone();
             ci.NumberFormat.CurrencyDecimalSeparator = ".";
-            //модель
-            List<string> lines = File.ReadAllLines(@"G:\USERS\DimucaTheDev\Documents\Blender\lambda.obj").Where(l => l.StartsWith("v") || l.StartsWith("f")).ToList();
+            List<string> lines = File.ReadAllLines(@"model.obj").Where(l => l.StartsWith("v") || l.StartsWith("f")).ToList();
             bool textured = false;
             foreach (var line in lines)
             {
@@ -201,24 +157,6 @@ namespace RotatingCube
                     }
                 }
             }
-            //model = OBJModel.LoadObjFile("untitled.obj");
-            //vert = model.Vertices;
-            List<Vector2> a = new();
-            List<uint> b = new();
-            for (int i = 0; i < vert.Count; i++)
-            {
-                a.Add(new(vert[i].X, vert[i].Y));
-                b.Add((uint)i);
-            }
-            // texCoords = a;
-            //indices = b.ToArray();
-
-            #region OpenGL 
-            //Упаси боже ты здесь что то поменяешь 
-            vao = GenVertexArray();
-            BindVertexArray(vao);
-            vbo = GenBuffer();
-
 
             BindBuffer(BufferTarget.ArrayBuffer, vbo);
             BufferData(BufferTarget.ArrayBuffer, vert.Count * Vector3.SizeInBytes, vert.ToArray(), BufferUsageHint.StaticDraw);
@@ -230,7 +168,7 @@ namespace RotatingCube
 
             tVbo = GenBuffer();
             BindBuffer(BufferTarget.ArrayBuffer, tVbo);
-            BufferData(BufferTarget.ArrayBuffer, texCoords.Count * sizeof(float), texCoords.ToArray(), BufferUsageHint.StaticDraw);
+            BufferData(BufferTarget.ArrayBuffer, texCoords.Count * sizeof(int), texCoords.ToArray(), BufferUsageHint.StaticDraw);
 
 
             VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 0, 0);
@@ -252,8 +190,8 @@ namespace RotatingCube
                 ShaderSource(shader, FromFile(name));
                 CompileShader(shader);
                 string log = GetShaderInfoLog(shader);
-                Log("Compiled shader " + name);
-                Log(string.Join("", log.Split("\n").Select(s => s.Insert(0, "\n\t"))));
+                // Log("Compiled shader " + name);
+                // Log(string.Join("", log.Split("\n").Select(s => s.Insert(0, "\n\t"))));
                 int bad = 0;
                 errors += bad = Math.Max(log.Split('\n').Count(l => l.Contains(": error")), 0);
                 BadShaders.Add(name, bad);
@@ -279,25 +217,14 @@ namespace RotatingCube
                 ImageResult tex = ImageResult.FromStream(File.OpenRead(VARIABLE), ColorComponents.RedGreenBlueAlpha);
                 TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, tex.Width, tex.Height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, tex.Data);
                 BindTexture(TextureTarget.Texture2D, UNBIND);
-                Log($"Loaded texture(id:{id:D3}): {VARIABLE}");
+                //Log($"Loaded texture(id:{id:D3}): {VARIABLE}");
                 TextureSize += tex.Data.Length * sizeof(byte);
             }
-            loc = GetAttribLocation(prog, "aRandom1");
-            loc2 = GetAttribLocation(prog, "aRandom2");
-            loc3 = GetAttribLocation(prog, "aRandom3");
             Enable(EnableCap.DepthTest);
-
-
-
             string pil = GetProgramInfoLog(prog);
-            Log(pil);
-            //errors = Sscanf(pil, "%s\n%s\n(%i) : error C%i:", __arglist(null));
-            //new Form1().Show();
             CenterWindow(new(550, 500));
             GLFW.ShowWindow(WindowPtr);
             #endregion
-
-            f.Show();
             GC.Collect(); //?
         }
 
@@ -308,22 +235,19 @@ namespace RotatingCube
             Viewport(0, 0, e.Width, e.Height);
         }
         private float r = 5;// { get => (float)Random.Shared.NextDouble(); }
-        private float yrot = 0;
+        private float xrot = 0, yrot = 0;
         /// <inheritdoc />
         protected override void OnRenderFrame(FrameEventArgs args)
         {
-            if (KeyboardState.IsKeyDown(Keys.Tab)) f.Show();
+            fr++;
 
-            timer += args.Time;
+            //WindowState = fs ? WindowState.Fullscreen : WindowState.Normal;
+            time += (float)args.Time;
+            UpdateFrequency = fpscap;
             ClearColor(Color4.Gray);
             Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             UseProgram(prog);
-            VertexAttrib1(loc, random);
-            VertexAttrib1(loc2, random);
-            VertexAttrib1(loc3, random);
-            VertexAttrib1(loc4, Size.X);
-            VertexAttrib1(loc5, Size.Y);
             BindTexture(TextureTarget.Texture2D, textures["side"]);
 
             BindVertexArray(vao);
@@ -342,13 +266,15 @@ namespace RotatingCube
             }
             catch (Exception e) when (e is not DivideByZeroException)
             {
-                Log(e);
+
             }
 
-            model = Matrix4.CreateRotationY(yrot >= 365 ? yrot = 0 : yrot += 0.5f * (float)args.Time)
-                  * Matrix4.CreateRotationX(yrot >= 365 ? yrot = 0 : yrot += 0.5f * (float)args.Time);
+            model = Matrix4.CreateRotationY(-90);
+            //model = Matrix4.CreateRotationY(yrot >= 365 ? yrot = 0 : yrot += 0.5f * (float)args.Time)
+            //* Matrix4.CreateRotationX(yrot >= 365 ? yrot = 0 : yrot += 0.5f * (float)args.Time);
 
-            Matrix4 translation = Matrix4.CreateTranslation(0, 0, -3f);
+            Matrix4 translation = Matrix4.CreateTranslation((new Vector3(op.X, op.Y = 20f * MathF.Sin((float)Math.Abs(yrot += (float)args.Time * 2)), -op.Z) / 30)) *
+                                  Matrix4.CreateTranslation((new Vector3(op.X = 35f * MathF.Sin((float)Math.Abs(xrot += (float)args.Time * 1)), op.Y, -op.Z) / 30));
             model *= translation;
 
             int modelLoc = GetUniformLocation(prog, "model");
@@ -358,18 +284,14 @@ namespace RotatingCube
             UniformMatrix4(modelLoc, true, ref model);
             UniformMatrix4(modelView, true, ref view);
             UniformMatrix4(modelProj, true, ref projecion);
-            if (DEBUG)
-                Form2.Instance.ft(args.Time);
 
             DrawElements(BeginMode.Triangles, indices.Count, DrawElementsType.UnsignedInt, 0);
-            Update(args);
+            //Update(args);
             Context.SwapBuffers();
             base.OnRenderFrame(args);
         }
 #pragma warning disable
         #region Reflections and other siht
-        [Conditional("DEBUG")]
-        void Log(dynamic _) => Form2.Instance.Log(_.ToString());
         string FromFile(string path) => File.ReadAllText(path);
 
         void Update(FrameEventArgs a) => Assembly.GetExecutingAssembly().GetTypes()

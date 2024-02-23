@@ -1,95 +1,49 @@
-﻿//dotnet add package AssimpNet
-using Assimp;
-using OpenTK.Mathematics;
+﻿using OpenTK.Mathematics;
+using System.Globalization;
 
 namespace OpentkGraphics
 {
     public class OBJModel
     {
-        public Vector3[] Vertices { get; set; }
-        public int VertexCount { get; set; }
-        /*
-           ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣤⣤⣴⣶⣶⣶⣶⣶⣶⣶⣤⣤⣄⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-           ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣤⣶⣿⣿⣿⠿⠟⠛⠛⠉⠉⠉⠉⠛⠛⠛⠿⢿⣿⣿⣷⣦⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-           ⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣾⣿⡿⠟⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠿⣿⣿⣷⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀
-           ⠀⠀⠀⠀⠀⠀⣠⣾⣿⡿⠟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⢿⣿⣿⣦⡀⠀⠀⠀⠀⠀⠀
-           ⠀⠀⠀⠀⢀⣼⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⢿⣿⣿⣆⠀⠀⠀⠀⠀
-           ⠀⠀⠀⣠⣿⣿⠟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⣿⣿⣷⡀⠀⠀⠀
-           ⠀⠀⣰⣿⣿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢿⣿⣷⡄⠀⠀
-           ⠀⢰⣿⣿⠃⠀⠀⠀⠀⠀⢀⣀⣠⣤⣤⣤⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢻⣿⣷⡀⠀
-           ⢀⣿⣿⠇⠀⠀⣀⣤⣶⣿⣿⡿⠿⠿⠿⠿⠿⣿⣧⠀⠀⠀⠀⠀⠀⠀⠀⣿⣷⣦⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⣿⣿⣧⠀
-           ⣸⣿⡟⠀⠐⠿⠛⠛⢉⣡⣴⣶⣶⣶⣤⣀⠀⠀⠁⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⣿⣿⣿⣶⣤⣀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⡄
-           ⣿⣿⡇⠀⠀⠀⠀⣴⣿⠟⠉⠁⠀⠉⠙⢿⣷⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣾⡿⠛⠿⢿⣿⣿⣷⣶⣦⣤⣄⣀⡀⠀⣿⣿⡇
-           ⣿⣿⡇⠀⠀⠀⢸⣿⠁⠀⠀⣀⣀⣀⠀⠀⢹⣿⡄⠀⠀⠀⠀⠀⠀⠀⠀⢰⣿⠏⠀⠀⢀⣀⡀⠈⠉⠻⣿⡟⠛⠉⠁⠀⣿⣿⡇
-           ⣿⣿⡇⠀⠀⠀⢻⣧⠀⠀⢸⣿⣿⣿⡄⠀⢸⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⠀⠀⢰⣿⣿⣿⡆⠀⠀⣿⡇⠀⠀⠀⠀⣿⣿⡇
-           ⣿⣿⡇⢠⠀⠀⠘⣿⣆⠀⠈⠻⠿⠋⠀⢀⣾⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⣿⣇⠀⠈⠻⠿⠟⠁⠀⣼⣿⠁⠀⠀⠀⢀⣿⣿⡇
-           ⢸⣿⣿⠈⢣⠀⠀⠈⠻⣷⣶⣤⣤⣤⣶⡿⠟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢿⣷⣦⣤⣠⣤⣴⣾⠟⠁⠀⠀⠀⠀⣸⣿⣿⠁
-           ⠈⣿⣿⣧⠀⠣⡀⠀⠀⠀⠉⠉⠉⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠛⠛⠛⠉⠀⠀⠀⠀⠀⠀⢠⣿⣿⡏⠀
-           ⠀⠸⣿⣿⣆⠀⠑⢄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣤⣴⣶⣶⣶⣶⣶⣶⣦⣤⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣿⣿⡿⠁⠀
-           ⠀⠀⠹⣿⣿⣦⠀⠈⠳⢄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣿⣿⡿⠁⠀⠀
-           ⠀⠀⠀⠘⢿⣿⣷⣄⠀⠀⠑⠦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠔⢁⣼⣿⣿⡿⠁⠀⠀⠀
-           ⠀⠀⠀⠀⠈⠻⣿⣿⣧⣀⠀⠀⠈⠑⠢⢄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⡠⠔⠋⢀⣴⣿⣿⣿⠏⠀⠀⠀⠀⠀
-           ⠀⠀⠀⠀⠀⠀⠈⠻⣿⣿⣷⣤⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠀⢀⣠⣶⣿⣿⣿⠟⠁⠀⠀⠀⠀⠀⠀
-           ⠀⠀⠀⠀⠀⠀⠀⠀⠈⠛⢿⣿⣿⣷⣦⣤⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣠⣴⣾⣿⣿⣿⠿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀
-           ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⠻⢿⣿⣿⣿⣿⣷⣶⣶⣶⣶⣶⣶⣶⣿⣿⣿⣿⣿⡿⠟⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-           ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠙⠛⠻⠿⠿⠿⠿⠿⠿⠿⠛⠛⠋⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-        
-        */
-        public static OBJModel LoadObjFile(string filePath)
-        {
-            OBJModel model = new OBJModel();
-            AssimpContext context = new AssimpContext();
-            Scene scene = context.ImportFile(filePath, PostProcessSteps.Triangulate);
-
-            if (scene == null || scene.MeshCount == 0)
-            {
-                Console.WriteLine("Failed to load OBJ file " + filePath);
-                return model;
-            }
-
-            Mesh mesh = scene.Meshes[0];
-            model.VertexCount = mesh.VertexCount;
-
-            if (mesh.HasVertices)
-            {
-                model.Vertices = new Vector3[model.VertexCount];
-                Array.Copy(mesh.Vertices.VecToVec().ToArray(), model.Vertices, model.VertexCount);
-            }
-
-            Console.WriteLine("Loaded " + filePath);
-            return model;
+        private static CultureInfo ci = (CultureInfo)CultureInfo.CurrentCulture.Clone();
+        static OBJModel()  {
+            ci.NumberFormat.NumberDecimalSeparator = ".";
         }
-        public static float[] VecToFloat(OBJModel model)
+        public static void Load(string path, List<Vector3> vertices, List<uint> indices, List<int> texCoords)
         {
-            List<float> v = new List<float>();
-            foreach (var VARIABLE in model.Vertices)
+            List<string> lines = File.ReadAllLines(path).Where(l => l.StartsWith("v") || l.StartsWith("f")).ToList();
+            bool textured = false;
+            foreach (var line in lines)
             {
-                v.Add(VARIABLE.X);
-                v.Add(VARIABLE.Y);
-                v.Add(VARIABLE.Z);
+                if (line.Split(" ")[0] == "v")
+                    vertices.Add(new(
+                        float.Parse(line.Split(" ")[1].ReplaceLineEndings("0"), NumberStyles.Any, ci),
+                        float.Parse(line.Split(" ")[2].ReplaceLineEndings("0"), NumberStyles.Any, ci),
+                        float.Parse(line.Split(" ")[3].ReplaceLineEndings("0"), NumberStyles.Any, ci)));
+
+                if (line.StartsWith("f"))
+                {
+                    if (line.Contains("/")) //new
+                    {
+                        textured = true;
+                        indices.Add(uint.Parse(line.Split(" ")[1].Split("/")[0]) - 1);
+                        indices.Add(uint.Parse(line.Split(" ")[2].Split("/")[0]) - 1);
+                        indices.Add(uint.Parse(line.Split(" ")[3].Split("/")[0]) - 1);
+
+                        texCoords.Add(int.Parse(line.Split(" ")[1].Split("/")[1]) - 1);
+                        texCoords.Add(int.Parse(line.Split(" ")[2].Split("/")[1]) - 1);
+                        texCoords.Add(int.Parse(line.Split(" ")[3].Split("/")[1]) - 1);
+                    }
+                    else
+                    {
+                        indices.Add(uint.Parse(line.Split(" ")[1]) - 1);
+                        indices.Add(uint.Parse(line.Split(" ")[2]) - 1);
+                        indices.Add(uint.Parse(line.Split(" ")[3]) - 1);
+                    }
+                }
             }
-            return v.ToArray();
-        }
-        public static float[] VecToFloat(List<OpenTK.Mathematics.Vector3> model)
-        {
-            List<float> v = new List<float>();
-            foreach (var VARIABLE in model)
-            {
-                v.Add(VARIABLE.X);
-                v.Add(VARIABLE.Y);
-                v.Add(VARIABLE.Z);
-            }
-            return v.ToArray();
+
         }
     }
 
-    static class ext
-    {
-        public static List<Vector3> VecToVec(this List<Vector3D> old)
-        {
-            List<Vector3> n = new();
-            for (int i = 0; i < old.Count; i++) n.Add(new(old[i].X, old[i].Y, old[i].Z));
-            return n;
-        }
-    }
 }
