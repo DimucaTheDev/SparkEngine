@@ -3,64 +3,24 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using OpentkGraphics;
 using StbImageSharp;
-using System.Diagnostics;
-using System.Globalization;
 using System.Reflection;
-using System.Runtime.InteropServices;
-using ClickableTransparentOverlay;
-using ImGuiNET;
-using SharpGen.Runtime;
 using static OpenTK.Graphics.OpenGL.GL;
 using Color4 = OpenTK.Mathematics.Color4;
-using Keys = OpenTK.Windowing.GraphicsLibraryFramework.Keys;
 using Timer = System.Timers.Timer;
+using Keys = OpenTK.Windowing.GraphicsLibraryFramework.Keys;
+using SparkEngine.Configuration;
 
-namespace RotatingCube
+namespace SparkEngine
 {
-    class ConfigOverlay : Overlay
-    {
-        /// <inheritdoc />
-        public override Task Run()
-        {
-            base.Position = Point.Empty;
-            return base.Run();
-        }
-        /// <inheritdoc />
-        protected override void Render()
-        {
-            base.Position = new Point(Program.Instance.Location.X, Program.Instance.Location.Y);
-            ImGui.Begin(Program.WINDOW_TITLE);
-            if (ImGui.Button("close")) Environment.Exit(0);
-
-            ImGui.Text($"FPS: {Program.fps:#.0}");
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-            ImGui.Text("fps cap");
-            ImGui.SameLine();
-            ImGui.DragFloat("", ref Program.fpscap, 0.5f, 0, 1000);
-
-            ImGui.DragFloat3("obj pos", ref Program.op);
-
-            if (ImGui.Button("GC.Collect")) GC.Collect();
-        }
-    }
     class Program : GameWindow
     {
-        public static System.Numerics.Vector3 op = new();
-        public static string WINDOW_TITLE;
         public static float fps = 0;
         public static float time = 0;
         private Timer s;
         public static Program Instance;
         public static IntPtr handle;
         public static Dictionary<string, int> BadShaders = new();
-        private int vao;
-        private int vbo;
-        private int tVbo;
-        private int ebo;
         public int fr = 0;
         public static int TextureSize = 0;
         private const int UNBIND = 0;
@@ -76,7 +36,6 @@ namespace RotatingCube
             //UpdateFrequency = 4
         }, new() { Title = "title", WindowState = WindowState.Normal, })
         {
-            WINDOW_TITLE = "Overlay";
             s = new();
             s.AutoReset = true;
             s.Interval = 1000;
@@ -95,93 +54,74 @@ namespace RotatingCube
         /// <inheritdoc />
         public override unsafe void Run()
         {
-            new Thread(() => new ConfigOverlay().Start()).Start();
-            GLFW.HideWindow(WindowPtr);
+            new Thread(() => new Overlay().Start()).Start();
+            //GLFW.HideWindow(WindowPtr);
             base.Run();
         }
 
         /// <inheritdoc />
         protected override void OnUnload()
         {
+
             base.OnUnload();
-            DeleteVertexArray(vao);
+            /*DeleteVertexArray(vao);
             DeleteBuffer(vbo);
-            DeleteBuffer(ebo);
+            DeleteBuffer(ebo);*/
             foreach (var VARIABLE in textures) DeleteTexture(VARIABLE.Value);
             DeleteProgram(prog);
         }
-        private List<uint> indices = new();
-        private List<Vector3> vert = new();
-        private List<int> texCoords = new();
+
         /// <inheritdoc />
         protected override unsafe void OnLoad()
         {
             base.OnLoad();
-            Focus();
+
+            //base.ClientLocation = new(SystemParameters.FullPrimaryScreenHeight / 2 - Size.X / 2, SystemInformation.VirtualScreen.Y/2-Size.Y/2);
+
             handle = Context.WindowPtr;
-            #region OpenGL 
+            CursorState = CursorState.Grabbed;
+
+            #region OpenGL
+
             //Упаси боже ты здесь что то поменяешь 
-            vao = GenVertexArray();
-            BindVertexArray(vao);
-            vbo = GenBuffer();
-            CultureInfo ci = (CultureInfo)CultureInfo.CurrentCulture.Clone();
-            ci.NumberFormat.CurrencyDecimalSeparator = ".";
-            List<string> lines = File.ReadAllLines(@"model.obj").Where(l => l.StartsWith("v") || l.StartsWith("f")).ToList();
-            bool textured = false;
-            foreach (var line in lines)
+            foreach (var files in Directory.GetFiles(".", "*.obj"))
             {
-                if (line.Split(" ")[0] == "v")
-                    vert.Add(new(
-                        float.Parse(line.Split(" ")[1].ReplaceLineEndings("0"), NumberStyles.Any, ci),
-                        float.Parse(line.Split(" ")[2].ReplaceLineEndings("0"), NumberStyles.Any, ci),
-                        float.Parse(line.Split(" ")[3].ReplaceLineEndings("0"), NumberStyles.Any, ci)));
+                var model = new GameObject().LoadModelData(files);
 
-                if (line.StartsWith("f"))
-                {
-                    if (line.Contains("/")) //new
-                    {
-                        textured = true;
-                        indices.Add(uint.Parse(line.Split(" ")[1].Split("/")[0]) - 1);
-                        indices.Add(uint.Parse(line.Split(" ")[2].Split("/")[0]) - 1);
-                        indices.Add(uint.Parse(line.Split(" ")[3].Split("/")[0]) - 1);
+                model.VAO = GenVertexArray();
+                BindVertexArray(model.VAO);
+                model.VBO = GenBuffer();
 
-                        texCoords.Add(int.Parse(line.Split(" ")[1].Split("/")[1]) - 1);
-                        texCoords.Add(int.Parse(line.Split(" ")[2].Split("/")[1]) - 1);
-                        texCoords.Add(int.Parse(line.Split(" ")[3].Split("/")[1]) - 1);
-                    }
-                    else
-                    {
-                        indices.Add(uint.Parse(line.Split(" ")[1]) - 1);
-                        indices.Add(uint.Parse(line.Split(" ")[2]) - 1);
-                        indices.Add(uint.Parse(line.Split(" ")[3]) - 1);
-                    }
-                }
+                BindBuffer(BufferTarget.ArrayBuffer, model.VBO);
+                BufferData(BufferTarget.ArrayBuffer, model.vert.Count * Vector3.SizeInBytes, model.vert.ToArray(),
+                    BufferUsageHint.StaticDraw);
+                //BindBuffer(BufferTarget.ArrayBuffer, UNBIND);
+
+                VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0, 0);
+                EnableVertexArrayAttrib(model.VAO, 0);
+                BindBuffer(BufferTarget.ArrayBuffer, UNBIND);
+
+                model.TVBO = GenBuffer();
+                BindBuffer(BufferTarget.ArrayBuffer, model.TVBO);
+                BufferData(BufferTarget.ArrayBuffer, model.texCoords.Count * sizeof(int), model.texCoords.ToArray(),
+                    BufferUsageHint.StaticDraw);
+
+
+                VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 0, 0);
+                EnableVertexArrayAttrib(model.VAO, 1);
+
+                BindBuffer(BufferTarget.ArrayBuffer, UNBIND);
+                BindVertexArray(UNBIND);
+
+
+                model.EBO = GenBuffer();
+                BindBuffer(BufferTarget.ElementArrayBuffer, model.EBO);
+                BufferData(BufferTarget.ElementArrayBuffer, model.indices.Count * sizeof(uint), model.indices.ToArray(),
+                    BufferUsageHint.StaticDraw);
+                BindBuffer(BufferTarget.ElementArrayBuffer, UNBIND);
+                GameObject.Models.Add(model);
             }
 
-            BindBuffer(BufferTarget.ArrayBuffer, vbo);
-            BufferData(BufferTarget.ArrayBuffer, vert.Count * Vector3.SizeInBytes, vert.ToArray(), BufferUsageHint.StaticDraw);
-            //BindBuffer(BufferTarget.ArrayBuffer, UNBIND);
-
-            VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0, 0);
-            EnableVertexArrayAttrib(vao, 0);
-            BindBuffer(BufferTarget.ArrayBuffer, UNBIND);
-
-            tVbo = GenBuffer();
-            BindBuffer(BufferTarget.ArrayBuffer, tVbo);
-            BufferData(BufferTarget.ArrayBuffer, texCoords.Count * sizeof(int), texCoords.ToArray(), BufferUsageHint.StaticDraw);
-
-
-            VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 0, 0);
-            EnableVertexArrayAttrib(vao, 1);
-
-            BindBuffer(BufferTarget.ArrayBuffer, UNBIND);
-            BindVertexArray(UNBIND);
-
-
-            ebo = GenBuffer();
-            BindBuffer(BufferTarget.ElementArrayBuffer, ebo);
-            BufferData(BufferTarget.ElementArrayBuffer, indices.Count * sizeof(uint), indices.ToArray(), BufferUsageHint.StaticDraw);
-            BindBuffer(BufferTarget.ElementArrayBuffer, UNBIND);
             int errors = 0;
             prog = CreateProgram();
             foreach (var name in Directory.GetFiles("Shader"))
@@ -221,71 +161,149 @@ namespace RotatingCube
                 TextureSize += tex.Data.Length * sizeof(byte);
             }
             Enable(EnableCap.DepthTest);
+
             string pil = GetProgramInfoLog(prog);
             CenterWindow(new(550, 500));
             GLFW.ShowWindow(WindowPtr);
             #endregion
+
+            camera.Yaw = 180;
+            Size = new(1280, 720);
             GC.Collect(); //?
         }
+
+        /// <inheritdoc />
+        protected override void OnFocusedChanged(FocusedChangedEventArgs e)
+        {
+            if (e.IsFocused)
+            {
+                CursorState = CursorState.Grabbed;
+            }
+            base.OnFocusedChanged(e);
+        }
+
+        /// <inheritdoc />
+        public override void Close() => Environment.Exit(0);
 
         /// <inheritdoc />
         protected override void OnResize(ResizeEventArgs e)
         {
             base.OnResize(e);
-            Viewport(0, 0, e.Width, e.Height);
+            Viewport(0, 0, Size.X, Size.Y);
         }
         private float r = 5;// { get => (float)Random.Shared.NextDouble(); }
         private float xrot = 0, yrot = 0;
+
+        float speed = 1.5f;
+
+        Vector3 position = new Vector3(0.0f, 0.0f, 3.0f);
+        Vector3 front = new Vector3(0.0f, 0.0f, -1.0f);
+        Vector3 up = new Vector3(0.0f, 1.0f, 0.0f);
+        public static Camera camera = new Camera();
+        private Vector2 lastPos;
         /// <inheritdoc />
         protected override void OnRenderFrame(FrameEventArgs args)
         {
-            fr++;
 
+            if (KeyboardState.IsKeyDown(Keys.Escape)) CursorState = CursorState.Normal;
+            speed = (float)args.Time * 2;
+            fr++;
             //WindowState = fs ? WindowState.Fullscreen : WindowState.Normal;
             time += (float)args.Time;
             UpdateFrequency = fpscap;
-            ClearColor(Color4.Gray);
+            ClearColor(Color4.Black);
             Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             UseProgram(prog);
             BindTexture(TextureTarget.Texture2D, textures["side"]);
-
-            BindVertexArray(vao);
-            BindBuffer(BufferTarget.ElementArrayBuffer, ebo);
-
-            int w = Size.X;
-            int h = Size.Y;
-            Matrix4 model = Matrix4.Identity;
-            Matrix4 view = Matrix4.Identity;
-            Matrix4 projecion = Matrix4.Identity;
-            model = Matrix4.Identity;
-            view = Matrix4.Identity;
-            try
+            foreach (var go in GameObject.Models)
             {
-                projecion = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(60), (float)((w == 0 || h == 0) ? (1.1f) : (w / h)), 0.1f, 100f);
+                BindVertexArray(go.VAO);
+                BindBuffer(BufferTarget.ElementArrayBuffer, go.EBO);
+
+                int w = Size.X;
+                int h = Size.Y;
+                Matrix4 model = Matrix4.Identity;
+                Matrix4 view = Matrix4.Identity;
+                Matrix4 projecion = Matrix4.Identity;
+                view = Matrix4.LookAt(position, position + front, up);
+
+                projecion = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(60), w / (float)h, 0.01f,
+                    200f);
+                model = Matrix4.CreateRotationX(float.DegreesToRadians(go.Transform.Rotation.X)) *
+                        Matrix4.CreateRotationY(float.DegreesToRadians(go.Transform.Rotation.Y)) *
+                        Matrix4.CreateRotationZ(float.DegreesToRadians(go.Transform.Rotation.Z));
+
+                Matrix4 translation = Matrix4.CreateTranslation(new Vector3(go.Transform.Position.X, go.Transform.Position.Y, -go.Transform.Position.Z) / 30);
+
+                #region fun
+                if (go.Sinusoida)
+                    translation = Matrix4.CreateTranslation((new Vector3(go.Transform.Position.X,
+                                                                 go.Transform.Position.Y = 20f * MathF.Sin(
+                                                                     (float)Math.Abs(yrot += (float)args.Time * 2)),
+                                                                 -go.Transform.Position.Z) /
+                                                             30)) *
+                                  Matrix4.CreateTranslation((new Vector3(
+                                      go.Transform.Position.X = 35f * MathF.Sin((float)Math.Abs(xrot += (float)args.Time * 1)), go.Transform.Position.Y,
+                                      -go.Transform.Position.Z) / 30));
+                #endregion
+
+                model *= translation;
+
+                int modelLoc = GetUniformLocation(prog, "model");
+                int modelView = GetUniformLocation(prog, "view");
+                int modelProj = GetUniformLocation(prog, "projection");
+
+                UniformMatrix4(modelLoc, true, ref model);
+                UniformMatrix4(modelView, true, ref view);
+                UniformMatrix4(modelProj, true, ref projecion);
+
+                DrawElements(BeginMode.Triangles, go.indices.Count, DrawElementsType.UnsignedInt, 0);
             }
-            catch (Exception e) when (e is not DivideByZeroException)
+            #region Walkin'
+            KeyboardState input = KeyboardState.GetSnapshot();
+
+            if (input.IsKeyDown(Keys.W))
+                position += front * speed; //
+            if (input.IsKeyDown(Keys.S))
+                position -= front * speed; //
+            if (input.IsKeyDown(Keys.A))
+                position -= Vector3.Normalize(Vector3.Cross(front, up)) * speed; //
+            if (input.IsKeyDown(Keys.D))
+                position += Vector3.Normalize(Vector3.Cross(front, up)) * speed; //
+            if (input.IsKeyDown(Keys.Space))
+                position += up * speed; //
+            if (input.IsKeyDown(Keys.LeftShift))
+                position -= up * speed; //Down
+            #endregion
+
+            if (IsFocused)
             {
+                #region lookin'
 
+                MouseState mouse = MouseState.GetSnapshot();
+                float deltaX = mouse.X - lastPos.X;
+                float deltaY = mouse.Y - lastPos.Y;
+                lastPos = new Vector2(mouse.X, mouse.Y);
+                camera.Yaw += deltaX * camera.Sensitivity;
+                camera.Pitch -= deltaY * camera.Sensitivity;
+                if (camera.Pitch > 90.0f)
+                    camera.Pitch = 90.0f;
+                else if (camera.Pitch < -90.0f)
+                    camera.Pitch = -90.0f;
+                else
+                    camera.Pitch -= deltaY * camera.Sensitivity;
+
+                front.X = (float)Math.Cos(MathHelper.DegreesToRadians(camera.Pitch)) *
+                          (float)Math.Cos(MathHelper.DegreesToRadians(camera.Yaw));
+                front.Y = (float)Math.Sin(MathHelper.DegreesToRadians(camera.Pitch));
+                front.Z = (float)Math.Cos(MathHelper.DegreesToRadians(camera.Pitch)) *
+                          (float)Math.Sin(MathHelper.DegreesToRadians(camera.Yaw));
+                front = Vector3.Normalize(front);
+
+                #endregion
             }
 
-            model = Matrix4.CreateRotationY(-90);
-            //model = Matrix4.CreateRotationY(yrot >= 365 ? yrot = 0 : yrot += 0.5f * (float)args.Time)
-            //* Matrix4.CreateRotationX(yrot >= 365 ? yrot = 0 : yrot += 0.5f * (float)args.Time);
-
-            Matrix4 translation = Matrix4.CreateTranslation((new Vector3(op.X, op.Y = 20f * MathF.Sin((float)Math.Abs(yrot += (float)args.Time * 2)), -op.Z) / 30)) *
-                                  Matrix4.CreateTranslation((new Vector3(op.X = 35f * MathF.Sin((float)Math.Abs(xrot += (float)args.Time * 1)), op.Y, -op.Z) / 30));
-            model *= translation;
-
-            int modelLoc = GetUniformLocation(prog, "model");
-            int modelView = GetUniformLocation(prog, "view");
-            int modelProj = GetUniformLocation(prog, "projection");
-
-            UniformMatrix4(modelLoc, true, ref model);
-            UniformMatrix4(modelView, true, ref view);
-            UniformMatrix4(modelProj, true, ref projecion);
-
-            DrawElements(BeginMode.Triangles, indices.Count, DrawElementsType.UnsignedInt, 0);
             //Update(args);
             Context.SwapBuffers();
             base.OnRenderFrame(args);

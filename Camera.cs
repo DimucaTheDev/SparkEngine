@@ -1,12 +1,18 @@
 ﻿using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using SparkEngine;
+using SparkEngine.Configuration;
 
-namespace OpentkGraphics
+namespace SparkEngine
 {
-    [Behaviour(CallUpdate = false)]
+    [Program.Behaviour(CallUpdate = false)]
     internal class Camera
     {
+        public double Sensitivity = 0.15f;
+        public double Yaw;
+        public double Pitch;
+        public Vector3 pos;
         public Matrix4 GetViewMatrix() { throw new(); }
 
         public Matrix4 GetProjectionMatrix()

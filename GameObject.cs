@@ -1,22 +1,35 @@
-﻿using OpenTK.Mathematics;
+﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using OpenTK.Mathematics;
+using static System.Windows.Forms.LinkLabel;
 
-namespace OpentkGraphics
+namespace SparkEngine
 {
-    public class OBJModel
+    internal class GameObject
     {
-        private static CultureInfo ci = (CultureInfo)CultureInfo.CurrentCulture.Clone();
-        static OBJModel()  {
-            ci.NumberFormat.NumberDecimalSeparator = ".";
-        }
-        public static void Load(string path, List<Vector3> vertices, List<uint> indices, List<int> texCoords)
+        public static List<GameObject> Models=new(); //todo
+
+        public string Name = $"OBJ_{Random.Shared.Next(0,999).ToString("000")}";
+        public Transform Transform = new();
+        public int VBO, VAO, TVBO, EBO;
+        public List<uint> indices = new();
+        public List<Vector3> vert = new();
+        public List<int> texCoords = new();
+        public bool Sinusoida;
+
+        public GameObject LoadModelData(string objFile)
         {
-            List<string> lines = File.ReadAllLines(path).Where(l => l.StartsWith("v") || l.StartsWith("f")).ToList();
-            bool textured = false;
-            foreach (var line in lines)
+            CultureInfo ci = (CultureInfo)CultureInfo.CurrentCulture.Clone();
+            ci.NumberFormat.CurrencyDecimalSeparator = ".";
+            foreach (var _line in File.ReadAllLines(objFile).Where(l => l.StartsWith("v") || l.StartsWith("f")).ToList())
             {
+                var line = _line;
                 if (line.Split(" ")[0] == "v")
-                    vertices.Add(new(
+                    vert.Add(new(
                         float.Parse(line.Split(" ")[1].ReplaceLineEndings("0"), NumberStyles.Any, ci),
                         float.Parse(line.Split(" ")[2].ReplaceLineEndings("0"), NumberStyles.Any, ci),
                         float.Parse(line.Split(" ")[3].ReplaceLineEndings("0"), NumberStyles.Any, ci)));
@@ -25,7 +38,8 @@ namespace OpentkGraphics
                 {
                     if (line.Contains("/")) //new
                     {
-                        textured = true;
+                        line = line.Replace("//", "/");
+                        //textured = true;
                         indices.Add(uint.Parse(line.Split(" ")[1].Split("/")[0]) - 1);
                         indices.Add(uint.Parse(line.Split(" ")[2].Split("/")[0]) - 1);
                         indices.Add(uint.Parse(line.Split(" ")[3].Split("/")[0]) - 1);
@@ -43,7 +57,7 @@ namespace OpentkGraphics
                 }
             }
 
+            return this;
         }
     }
-
 }
