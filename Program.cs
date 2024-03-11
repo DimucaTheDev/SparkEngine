@@ -27,6 +27,10 @@ namespace SparkEngine
         private int prog;
         private Dictionary<string, int> textures = new();
         public static float fpscap = 0;
+        private float xrot = 0, yrot = 0;
+        float speed = 1.5f;
+        Vector3 position = new Vector3(0.0f, 0.0f, 3.0f);
+        private Vector2 lastPos;
         [STAThread]
         static void Main(string[] args_) => new Program().Run();
 
@@ -34,7 +38,7 @@ namespace SparkEngine
         public Program() : base(new()
         {
             //UpdateFrequency = 4
-        }, new() { Title = "title", WindowState = WindowState.Normal, })
+        }, new() { Title = "SparkEngine                  visit https://spark.cmdev.pw/ for more info                  made by Dmitrii Punchenko as a personal project                  ESC to release cursor                  click Close or enter 'exit' command to stop", WindowState = WindowState.Normal, })
         {
             s = new();
             s.AutoReset = true;
@@ -43,7 +47,7 @@ namespace SparkEngine
             {
                 fps = fr / time;// / 1000;
                 time = fr = 0;
-
+                UpdateFrequency = fpscap;
             };
             s.Start();
             Instance = this;
@@ -64,9 +68,12 @@ namespace SparkEngine
         {
 
             base.OnUnload();
-            /*DeleteVertexArray(vao);
-            DeleteBuffer(vbo);
-            DeleteBuffer(ebo);*/
+            foreach (var obj in GameObject.Models)
+            {
+                DeleteVertexArray(obj.VAO);
+                DeleteBuffer(obj.VBO);
+                DeleteBuffer(obj.EBO);
+            }
             foreach (var VARIABLE in textures) DeleteTexture(VARIABLE.Value);
             DeleteProgram(prog);
         }
@@ -167,7 +174,7 @@ namespace SparkEngine
             GLFW.ShowWindow(WindowPtr);
             #endregion
 
-            camera.Yaw = 180;
+            Camera.Yaw = 180;
             Size = new(1280, 720);
             GC.Collect(); //?
         }
@@ -177,6 +184,7 @@ namespace SparkEngine
         {
             if (e.IsFocused)
             {
+                Logger.PrintLine("focus");
                 CursorState = CursorState.Grabbed;
             }
             base.OnFocusedChanged(e);
@@ -186,31 +194,26 @@ namespace SparkEngine
         public override void Close() => Environment.Exit(0);
 
         /// <inheritdoc />
+        protected override void OnMouseDown(MouseButtonEventArgs e)
+        {
+            base.OnMouseDown(e);
+            CursorState = CursorState.Grabbed;
+        }
+
+        /// <inheritdoc />
         protected override void OnResize(ResizeEventArgs e)
         {
             base.OnResize(e);
             Viewport(0, 0, Size.X, Size.Y);
         }
-        private float r = 5;// { get => (float)Random.Shared.NextDouble(); }
-        private float xrot = 0, yrot = 0;
 
-        float speed = 1.5f;
-
-        Vector3 position = new Vector3(0.0f, 0.0f, 3.0f);
-        Vector3 front = new Vector3(0.0f, 0.0f, -1.0f);
-        Vector3 up = new Vector3(0.0f, 1.0f, 0.0f);
-        public static Camera camera = new Camera();
-        private Vector2 lastPos;
         /// <inheritdoc />
         protected override void OnRenderFrame(FrameEventArgs args)
         {
-
             if (KeyboardState.IsKeyDown(Keys.Escape)) CursorState = CursorState.Normal;
             speed = (float)args.Time * 2;
             fr++;
-            //WindowState = fs ? WindowState.Fullscreen : WindowState.Normal;
             time += (float)args.Time;
-            UpdateFrequency = fpscap;
             ClearColor(Color4.Black);
             Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
@@ -226,9 +229,9 @@ namespace SparkEngine
                 Matrix4 model = Matrix4.Identity;
                 Matrix4 view = Matrix4.Identity;
                 Matrix4 projecion = Matrix4.Identity;
-                view = Matrix4.LookAt(position, position + front, up);
+                view = Matrix4.LookAt(position, position + Camera.Front, Camera.Up);
 
-                projecion = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(60), w / (float)h, 0.01f,
+                projecion = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(Camera.Fov), w / (float)h, 0.01f,
                     200f);
                 model = Matrix4.CreateRotationX(float.DegreesToRadians(go.Transform.Rotation.X)) *
                         Matrix4.CreateRotationY(float.DegreesToRadians(go.Transform.Rotation.Y)) *
@@ -261,45 +264,44 @@ namespace SparkEngine
                 DrawElements(BeginMode.Triangles, go.indices.Count, DrawElementsType.UnsignedInt, 0);
             }
             #region Walkin'
-            KeyboardState input = KeyboardState.GetSnapshot();
+            KeyboardState input = KeyboardState;
 
             if (input.IsKeyDown(Keys.W))
-                position += front * speed; //
+                position += Camera.Front * speed; //
             if (input.IsKeyDown(Keys.S))
-                position -= front * speed; //
+                position -= Camera.Front * speed; //
             if (input.IsKeyDown(Keys.A))
-                position -= Vector3.Normalize(Vector3.Cross(front, up)) * speed; //
+                position -= Vector3.Normalize(Vector3.Cross(Camera.Front, Camera.Up)) * speed; //
             if (input.IsKeyDown(Keys.D))
-                position += Vector3.Normalize(Vector3.Cross(front, up)) * speed; //
+                position += Vector3.Normalize(Vector3.Cross(Camera.Front, Camera.Up)) * speed; //
             if (input.IsKeyDown(Keys.Space))
-                position += up * speed; //
+                position += Camera.Up * speed; //
             if (input.IsKeyDown(Keys.LeftShift))
-                position -= up * speed; //Down
+                position -= Camera.Up * speed; //Down
             #endregion
-
-            if (IsFocused)
+            if (CursorState == CursorState.Grabbed && IsFocused)
             {
                 #region lookin'
 
-                MouseState mouse = MouseState.GetSnapshot();
+                MouseState mouse = MouseState;
                 float deltaX = mouse.X - lastPos.X;
                 float deltaY = mouse.Y - lastPos.Y;
                 lastPos = new Vector2(mouse.X, mouse.Y);
-                camera.Yaw += deltaX * camera.Sensitivity;
-                camera.Pitch -= deltaY * camera.Sensitivity;
-                if (camera.Pitch > 90.0f)
-                    camera.Pitch = 90.0f;
-                else if (camera.Pitch < -90.0f)
-                    camera.Pitch = -90.0f;
+                Camera.Yaw += deltaX * Camera.Sensitivity;
+                Camera.Pitch -= deltaY * Camera.Sensitivity;
+                if (Camera.Pitch > 89.9f)
+                    Camera.Pitch = 89.9f;
+                else if (Camera.Pitch < -89.9f)
+                    Camera.Pitch = -89.9f;
                 else
-                    camera.Pitch -= deltaY * camera.Sensitivity;
+                    Camera.Pitch -= deltaY * Camera.Sensitivity;
 
-                front.X = (float)Math.Cos(MathHelper.DegreesToRadians(camera.Pitch)) *
-                          (float)Math.Cos(MathHelper.DegreesToRadians(camera.Yaw));
-                front.Y = (float)Math.Sin(MathHelper.DegreesToRadians(camera.Pitch));
-                front.Z = (float)Math.Cos(MathHelper.DegreesToRadians(camera.Pitch)) *
-                          (float)Math.Sin(MathHelper.DegreesToRadians(camera.Yaw));
-                front = Vector3.Normalize(front);
+                Camera.Front.X = (float)Math.Cos(MathHelper.DegreesToRadians(Camera.Pitch)) *
+                          (float)Math.Cos(MathHelper.DegreesToRadians(Camera.Yaw));
+                Camera.Front.Y = (float)Math.Sin(MathHelper.DegreesToRadians(Camera.Pitch));
+                Camera.Front.Z = (float)Math.Cos(MathHelper.DegreesToRadians(Camera.Pitch)) *
+                          (float)Math.Sin(MathHelper.DegreesToRadians(Camera.Yaw));
+                Camera.Front = Vector3.Normalize(Camera.Front);
 
                 #endregion
             }
