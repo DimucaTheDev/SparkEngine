@@ -1,19 +1,35 @@
-﻿using System.Globalization;
+﻿using System.Collections;
+using System.Globalization;
+using Newtonsoft.Json;
 using OpenTK.Mathematics;
+using JsonConverter = Newtonsoft.Json.JsonConverter;
+using JsonSerializer = Newtonsoft.Json.JsonSerializer;
 
 namespace SparkEngine
 {
-    internal class GameObject
+    public class GameObject
     {
-        public static List<GameObject> Models=new(); //todo
+        public static List<GameObject> Models = new(); //todo
 
-        public string Name = $"OBJ_{Random.Shared.Next(0,999).ToString("000")}";
+        public string Name = $"OBJ_{Random.Shared.Next(0, 999).ToString("000")}";
         public Transform Transform = new();
+        [JsonIgnore]
         public int VBO, VAO, TVBO, EBO;
-        public List<uint> indices = new();
-        public List<Vector3> vert = new();
-        public List<int> texCoords = new();
-        public bool Sinusoida;
+        public List<uint> Indices = new();
+        [JsonIgnore]
+        public List<Vector3> Vertices = new();
+        public List<int> TexCoords = new();
+        [JsonIgnore] public bool Sinusoida;
+
+        [JsonProperty("Vertices")] public list __IGNORE__;
+        public GameObject()
+        {
+            __IGNORE__ = new list { g = this };
+        }
+        //{
+        //get => Vertices.Select(s => new V3() { X = s.X, Y = s.Y, Z = s.Z }).ToList();
+        //set => Vertices = value.Select(s => new Vector3(s.X, s.Y, s.Z)).ToList();
+        //}
 
         public GameObject LoadModelData(string objFile)
         {
@@ -23,7 +39,7 @@ namespace SparkEngine
             {
                 var line = _line;
                 if (line.Split(" ")[0] == "v")
-                    vert.Add(new(
+                    Vertices.Add(new(
                         float.Parse(line.Split(" ")[1].ReplaceLineEndings("0"), NumberStyles.Any, ci),
                         float.Parse(line.Split(" ")[2].ReplaceLineEndings("0"), NumberStyles.Any, ci),
                         float.Parse(line.Split(" ")[3].ReplaceLineEndings("0"), NumberStyles.Any, ci)));
@@ -34,24 +50,107 @@ namespace SparkEngine
                     {
                         line = line.Replace("//", "/");
                         //textured = true;
-                        indices.Add(uint.Parse(line.Split(" ")[1].Split("/")[0]) - 1);
-                        indices.Add(uint.Parse(line.Split(" ")[2].Split("/")[0]) - 1);
-                        indices.Add(uint.Parse(line.Split(" ")[3].Split("/")[0]) - 1);
+                        Indices.Add(uint.Parse(line.Split(" ")[1].Split("/")[0]) - 1);
+                        Indices.Add(uint.Parse(line.Split(" ")[2].Split("/")[0]) - 1);
+                        Indices.Add(uint.Parse(line.Split(" ")[3].Split("/")[0]) - 1);
 
-                        texCoords.Add(int.Parse(line.Split(" ")[1].Split("/")[1]) - 1);
-                        texCoords.Add(int.Parse(line.Split(" ")[2].Split("/")[1]) - 1);
-                        texCoords.Add(int.Parse(line.Split(" ")[3].Split("/")[1]) - 1);
+                        TexCoords.Add(int.Parse(line.Split(" ")[1].Split("/")[1]) - 1);
+                        TexCoords.Add(int.Parse(line.Split(" ")[2].Split("/")[1]) - 1);
+                        TexCoords.Add(int.Parse(line.Split(" ")[3].Split("/")[1]) - 1);
                     }
                     else
                     {
-                        indices.Add(uint.Parse(line.Split(" ")[1]) - 1);
-                        indices.Add(uint.Parse(line.Split(" ")[2]) - 1);
-                        indices.Add(uint.Parse(line.Split(" ")[3]) - 1);
+                        Indices.Add(uint.Parse(line.Split(" ")[1]) - 1);
+                        Indices.Add(uint.Parse(line.Split(" ")[2]) - 1);
+                        Indices.Add(uint.Parse(line.Split(" ")[3]) - 1);
                     }
                 }
             }
 
             return this;
         }
+    }
+
+    public class list : IList<V3>
+    {
+        /// <inheritdoc />
+        public IEnumerator<V3> GetEnumerator()
+        {
+            throw new NotImplementedException();
+        }
+
+        public GameObject g;
+        /// <inheritdoc />
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        /// <inheritdoc />
+        public void Add(V3 item)
+        {
+            g.Vertices.Add(new(item.X, item.Y, item.Z));
+        }
+
+        /// <inheritdoc />
+        public void Clear()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc />
+        public bool Contains(V3 item)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc />
+        public void CopyTo(V3[] array, int arrayIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc />
+        public bool Remove(V3 item)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc />
+        public int Count { get; }
+
+        /// <inheritdoc />
+        public bool IsReadOnly { get; }
+
+        /// <inheritdoc />
+        public int IndexOf(V3 item)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc />
+        public void Insert(int index, V3 item)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc />
+        public void RemoveAt(int index)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc />
+        public V3 this[int index]
+        {
+            get => throw new NotImplementedException();
+            set => throw new NotImplementedException();
+        }
+    }
+    public struct V3
+    {
+        public float X { get; set; }
+        public float Y { get; set; }
+        public float Z { get; set; }
     }
 }

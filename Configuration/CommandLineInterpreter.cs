@@ -1,14 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
+using System.Drawing.Imaging;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using SparkEngine.Configuration;
 
-namespace SparkEngine.Shader
+namespace SparkEngine.Configuration
 {
     internal class CommandLineInterpreter
     {
@@ -61,13 +62,14 @@ namespace SparkEngine.Shader
         {
             if (int.Parse(args.Split(" ")[0]) < 10 || int.Parse(args.Split(" ")[0]) > 360) return CommandResult.Fail;
             Camera.Fov = int.Parse(args.Split(" ")[0]);
+            if (Camera.Fov > 179) Warn("Shitty result may occur!");
             return CommandResult.Success;
         }
         [Description("Shows callstack in debugger")]
         [Command("assert")]
         public static CommandResult Assert(string args)
         {
-            System.Diagnostics.Debug.Assert(false);
+            System.Diagnostics.Debug.Assert(!Debugger.Launch());
             return CommandResult.Success;
         }
         [Description("Shows help")]
@@ -96,6 +98,14 @@ namespace SparkEngine.Shader
         {
             if (int.Parse(args.Split(" ")[0]) < 1) return CommandResult.Fail;
             Camera.Sensitivity = double.Parse(args.Split(" ")[0]) / 100;
+            return CommandResult.Success;
+        }
+
+        [Command("screenshot"), Command("ss")]
+        [Description("Makes a screenshot of a windw to screenshots/ folder")]
+        public static CommandResult Screenshot(string args)
+        {
+            Program.ScreenshotRequired = true;
             return CommandResult.Success;
         }
         public static CommandResult Execute(string command)

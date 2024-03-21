@@ -7,7 +7,6 @@
 
 using System.Numerics;
 using ImGuiNET;
-using SparkEngine.Shader;
 using Vortice.Direct3D11;
 using static ImGuiNET.ImGui;
 
@@ -25,42 +24,60 @@ class Overlay : ClickableTransparentOverlay.Overlay
         Position = new System.Drawing.Point(Program.Instance.Location.X, Program.Instance.Location.Y);
         Begin("SparkEngine");
         if (Button("close")) Environment.Exit(0);
+        if (Button("restart"))
+        {
+            Program.Restart = true;
+        }
         if (CollapsingHeader("Main"))
         {
             Indent();
-
-            Text($"FPS: {Program.fps:#.0}");
             DragFloat("fps cap", ref Program.fpscap, 0.5f, 0, 1000);
             if (Button("GC.Collect")) GC.Collect();
 
             Unindent();
         }
-        //fun
 
+        //fun
+        Text($"FPS: {Program.fps:#.0}");
         Text("yaw: " + Camera.Yaw);
         Text("pitch: " + Camera.Pitch);
+        Text("fov: "+Camera.Fov);
+        Text($"frames: {Program.Frames}");
         End();
 
         Begin("Scene");
+        if (CollapsingHeader("Scenes"))
+        {
+            Indent();
+            foreach (var scene in Directory.GetDirectories("Scenes"))
+            {
+                var scene_ = (string)scene.Clone();
+                if (Button($"{scene_.Split("\\")[1]}"))
+                {
+                    SceneManager.CurrentScene = SceneManager.Load(scene_ + "/levelinfo.json");
+                }
+            }
+            Unindent();
+        }
         if (CollapsingHeader("Objects"))
         {
             Indent();
-            for (int i = 0; i < GameObject.Models.Count; i++)
+            for (int i = 0; i < SceneManager.CurrentScene.Objects.Count; i++)
             {
                 var _ = i;
-                if (CollapsingHeader($"[{GameObject.Models[_].Name}] - Transform"))
+                if (CollapsingHeader($"[{SceneManager.CurrentScene.Objects[_].Name}] - Transform"))
                 {
                     BeginChild(_.ToString());
                     Indent();
-                    InputText("Name", ref GameObject.Models[_].Name, 100);
-                    InputFloat3("Pos", ref GameObject.Models[_].Transform.Position);
-                    InputFloat3("Rot", ref GameObject.Models[_].Transform.Rotation);
+                    InputText("Name", ref SceneManager.CurrentScene.Objects[_].Name, 100);
+                    InputFloat3("Pos", ref SceneManager.CurrentScene.Objects[_].Transform.Position);
+                    InputFloat3("Rot", ref SceneManager.CurrentScene.Objects[_].Transform.Rotation);
                     Unindent();
                     EndChild();
                     if (CollapsingHeader("Fun"))
                     {
                         Indent();
-                        Checkbox("sinusoida", ref GameObject.Models[_].Sinusoida);
+                        Checkbox("sinusoida", ref SceneManager.CurrentScene.Objects[_].Sinusoida);
                         Unindent();
                     }
                 }
@@ -69,6 +86,7 @@ class Overlay : ClickableTransparentOverlay.Overlay
         }
         End();
         Begin("Console");
+        Text($"GLES errors:{Program.Errors}");
         float footer_height_to_reserve = GetStyle().ItemSpacing.Y + GetFrameHeightWithSpacing();
         if (BeginChild("ScrollingRegion", new(0, -footer_height_to_reserve), ImGuiChildFlags.None, ImGuiWindowFlags.HorizontalScrollbar))
         {
@@ -83,7 +101,8 @@ class Overlay : ClickableTransparentOverlay.Overlay
                 if (line.Split(" ")[0].Contains("ERR!"))
                 {
                     PushStyleColor(ImGuiCol.Text, new Vector4(1, 0, 0, 1));
-                } else if (line.Split(" ")[0].Contains("WARN"))
+                }
+                else if (line.Split(" ")[0].Contains("WARN"))
                 {
                     PushStyleColor(ImGuiCol.Text, new Vector4(1, 1, 0, 1));
                 }
@@ -104,6 +123,21 @@ class Overlay : ClickableTransparentOverlay.Overlay
             command = "";
         }
         End();
+
+        foreach (var UPPER in Program.Instance.JoystickStates.Where(s => s != null))
+        {
+            var joystick = UPPER;
+            Begin($"Controller_{joystick.Id} ({joystick.Name})");
+                Text($"AXIS_{0}:{joystick.GetAxis(0)}");
+                Text($"AXIS_{1}:{joystick.GetAxis(1)}");
+                Text($"AXIS_{2}:{joystick.GetAxis(2)}");
+                Text($"AXIS_{3}:{joystick.GetAxis(3)}");
+                Text($"AXIS_{4}:{joystick.GetAxis(4)}");
+                Text($"AXIS_{5}:{joystick.GetAxis(5)}");
+            for (int i = 0; i < joystick.ButtonCount; i++)
+                Text($"b{i}:{joystick.IsButtonDown(i)}");
+            End();
+        }
     }
 
     private string command = "";
