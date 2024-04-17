@@ -1,23 +1,21 @@
-﻿using System.Diagnostics;
-using System.Drawing;
-using System.Drawing.Imaging;
-using OpenTK.Graphics.OpenGL;
+﻿using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using SparkEngine.Configuration;
 using StbImageSharp;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using static OpenTK.Graphics.OpenGL.GL;
-using Color4 = OpenTK.Mathematics.Color4;
-using Timer = System.Timers.Timer;
-using Keys = OpenTK.Windowing.GraphicsLibraryFramework.Keys;
-using SparkEngine.Configuration;
-using Veldrid.Sdl2;
 using Bitmap = System.Drawing.Bitmap;
+using Color4 = OpenTK.Mathematics.Color4;
 using ErrorCode = OpenTK.Graphics.OpenGL.ErrorCode;
+using Keys = OpenTK.Windowing.GraphicsLibraryFramework.Keys;
 using PixelFormat = OpenTK.Graphics.OpenGL.PixelFormat;
+using Timer = System.Timers.Timer;
 
 namespace SparkEngine
 {
@@ -193,23 +191,19 @@ namespace SparkEngine
         [STAThread]
         static void Main(string[] args_)
         {
-            while (Restart)
-            {
-                SceneManager.CurrentScene = new();
-                GameObject.Models = new List<GameObject>();
+            SceneManager.CurrentScene = new();
+            GameObject.Models = new List<GameObject>();
 
-                fps = new();
-                time = new();
-                Frames = new();
-                Errors = new();
-                BadShaders = new();
-                TextureSize = new();
-                fpscap = new();
-                ScreenshotRequired = new();
-                Restart = false;
-                new Program().Run();
-                CloseWindow(handle);
-            }
+            fps = new();
+            time = new();
+            Frames = new();
+            Errors = new();
+            BadShaders = new();
+            TextureSize = new();
+            fpscap = new();
+            ScreenshotRequired = new();
+            new Program().Run();
+            CloseWindow(handle);
         }
 
         /// <inheritdoc />
@@ -315,6 +309,7 @@ namespace SparkEngine
             SceneManager.CurrentScene = SceneManager.Load("Scenes/level1/levelinfo.json");
             int errors = 0;
             prog = CreateProgram();
+            error = GetError();
             foreach (var name in Directory.GetFiles("Shader"))
             {
                 int shader = CreateShader(name.EndsWith("vert") ? ShaderType.VertexShader : ShaderType.FragmentShader);
@@ -324,7 +319,11 @@ namespace SparkEngine
                 Logger.PrintLine("Compiled shader " + name);
                 //Logger.PrintLine( string.Join("", log.Split("\n").Select(s => s.Insert(0, "\n\t"))));
                 int bad = 0;
-                errors += bad = Math.Max(log.Split('\n').Count(l => l.Contains(": error")), 0);
+                errors += bad = Math.Max(log.Split('\n').Count(l =>
+                {
+                    Logger.PrintLine(l);
+                    return l.Contains(": error");
+                }), 0);
                 BadShaders.Add(name, bad);
                 AttachShader(prog, shader);
                 DeleteShader(shader);
@@ -449,6 +448,8 @@ namespace SparkEngine
             base.OnJoystickConnected(e);
             Logger.PrintLine(JoystickStates[0].Name);
         }
+
+        private ErrorCode error;
         public int idJoystick = -1;
         /// <inheritdoc />
         protected override unsafe void OnRenderFrame(FrameEventArgs args)
@@ -488,10 +489,11 @@ namespace SparkEngine
             speed = (float)args.Time * 2;
             fr++;
             time += (float)args.Time;
-            ClearColor(Color4.Black);
+            ClearColor(Color4.DimGray);
             Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             UseProgram(prog);
+            error = GetError();
             //BindTexture(TextureTarget.Texture2D, textures["side"]);
             foreach (var go in SceneManager.CurrentScene.Objects)
             {
@@ -515,14 +517,14 @@ namespace SparkEngine
 
                 #region fun
                 if (go.Sinusoida)
-                    translation = Matrix4.CreateTranslation((new Vector3(go.Transform.Position.X,
+                    translation = Matrix4.CreateTranslation(new Vector3(go.Transform.Position.X,
                                                                  go.Transform.Position.Y = 20f * MathF.Sin(
                                                                      (float)Math.Abs(yrot += (float)args.Time * 2)),
                                                                  -go.Transform.Position.Z) /
-                                                             30)) *
-                                  Matrix4.CreateTranslation((new Vector3(
+                                                             30) *
+                                  Matrix4.CreateTranslation(new Vector3(
                                       go.Transform.Position.X = 35f * MathF.Sin((float)Math.Abs(xrot += (float)args.Time * 1)), go.Transform.Position.Y,
-                                      -go.Transform.Position.Z) / 30));
+                                      -go.Transform.Position.Z) / 30);
                 #endregion
 
                 model *= translation;
@@ -536,6 +538,7 @@ namespace SparkEngine
                 UniformMatrix4(modelProj, true, ref projecion);
 
                 DrawElements(BeginMode.Triangles, go.Indices.Count, DrawElementsType.UnsignedInt, 0);
+
             }
             PlayerController.Look(this);
             KeyboardState input = KeyboardState;
@@ -567,23 +570,6 @@ namespace SparkEngine
 
             if (GetError() != ErrorCode.NoError) Errors++;
             Frames++;
-            if (Restart)
-            {
-                SceneManager.CurrentScene = new();
-                foreach (var obj in SceneManager.CurrentScene.Objects)
-                {
-                    DeleteVertexArray(obj.VAO);
-                    DeleteBuffer(obj.VBO);
-                    DeleteBuffer(obj.EBO);
-                }
-                foreach (var VARIABLE in textures) DeleteTexture(VARIABLE.Value);
-                DeleteProgram(prog);
-                Overlay.Instance!.Close();
-                Overlay.Instance.Dispose();
-                Overlay.Instance = null;
-                Instance = null;
-                Close();
-            }
             Context.SwapBuffers();
             base.OnRenderFrame(args);
             //Update(args);

@@ -5,9 +5,9 @@
 
 #endregion
 
-using System.Numerics;
 using ImGuiNET;
-using Vortice.Direct3D11;
+using OpenTK.Graphics.OpenGL;
+using System.Numerics;
 using static ImGuiNET.ImGui;
 
 namespace SparkEngine.Configuration;
@@ -41,7 +41,7 @@ class Overlay : ClickableTransparentOverlay.Overlay
         Text($"FPS: {Program.fps:#.0}");
         Text("yaw: " + Camera.Yaw);
         Text("pitch: " + Camera.Pitch);
-        Text("fov: "+Camera.Fov);
+        Text("fov: " + Camera.Fov);
         Text($"frames: {Program.Frames}");
         End();
 
@@ -87,6 +87,7 @@ class Overlay : ClickableTransparentOverlay.Overlay
         End();
         Begin("Console");
         Text($"GLES errors:{Program.Errors}");
+        Text("Latest:" + GL.GetError().ToString());
         float footer_height_to_reserve = GetStyle().ItemSpacing.Y + GetFrameHeightWithSpacing();
         if (BeginChild("ScrollingRegion", new(0, -footer_height_to_reserve), ImGuiChildFlags.None, ImGuiWindowFlags.HorizontalScrollbar))
         {
@@ -128,12 +129,12 @@ class Overlay : ClickableTransparentOverlay.Overlay
         {
             var joystick = UPPER;
             Begin($"Controller_{joystick.Id} ({joystick.Name})");
-                Text($"AXIS_{0}:{joystick.GetAxis(0)}");
-                Text($"AXIS_{1}:{joystick.GetAxis(1)}");
-                Text($"AXIS_{2}:{joystick.GetAxis(2)}");
-                Text($"AXIS_{3}:{joystick.GetAxis(3)}");
-                Text($"AXIS_{4}:{joystick.GetAxis(4)}");
-                Text($"AXIS_{5}:{joystick.GetAxis(5)}");
+            Text($"AXIS_{0}:{joystick.GetAxis(0)}");
+            Text($"AXIS_{1}:{joystick.GetAxis(1)}");
+            Text($"AXIS_{2}:{joystick.GetAxis(2)}");
+            Text($"AXIS_{3}:{joystick.GetAxis(3)}");
+            Text($"AXIS_{4}:{joystick.GetAxis(4)}");
+            Text($"AXIS_{5}:{joystick.GetAxis(5)}");
             for (int i = 0; i < joystick.ButtonCount; i++)
                 Text($"b{i}:{joystick.IsButtonDown(i)}");
             End();
